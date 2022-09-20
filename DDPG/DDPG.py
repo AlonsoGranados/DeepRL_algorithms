@@ -23,7 +23,7 @@ def critic_step(buffer, critic, target_critic, target_actor, batch_size, device,
 
     ##########################################################
 
-    action_batch = action_batch.reshape ((128,1))
+    action_batch = action_batch.reshape ((batch_size,1))
 
     Q_values = critic(torch.cat((state_batch,action_batch),1))
 

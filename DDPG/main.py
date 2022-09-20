@@ -12,7 +12,7 @@ from utils import exploratory_policy
 import matplotlib.pyplot as plt
 import time
 
-tau = 0.1
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #env = gym.envs.make('LunarLander-v2')
 env = gym.envs.make('MountainCarContinuous-v0')
@@ -37,49 +37,43 @@ for target_param, param in zip(critic_target.parameters(), critic_network.parame
 actor_target.eval()
 critic_target.eval()
 
-actor_optimizer = optim.RMSprop(actor_network.parameters())
-critic_optimizer = optim.RMSprop(critic_network.parameters())
+actor_optimizer = optim.Adam(actor_network.parameters())
+critic_optimizer = optim.Adam(critic_network.parameters())
 
-
+tau = 0.001
 gamma = 0.9
-epsilon = 1
-batch_size = 128
+batch_size = 64
 max_iter = 200
 num_episodes = 50000
 target_update = 5000
 
-state = env.reset()
-state = torch.from_numpy(state).to(device)
 G = 0
 G_list = []
 for e in range(num_episodes):
+    start_time = time.time()
+    state = env.reset()
+    state = torch.from_numpy(state).to(device)
+
     if(e % 100 == 0):
         print(e)
     if (e % 1000 == 999):
         plt.plot(G_list)
         plt.show()
     for t in range(max_iter):
-
-        if(e % 1000 == 999):
-            epsilon = 0.1
-            # env.render()
+        # env.render()
         # action = np.random.randint(env.action_space.n)
         action = exploratory_policy(state, actor_network, act_space, device)
 
-        # next_state, reward, done, info = env.step(action)
         next_state, reward, done, info = env.step([action.item()])
         next_state = torch.from_numpy(next_state).to(device)
         reward = torch.tensor([float(reward)], device=device)
         G += reward.item()
         # Store transition
         buffer.push(state.view(1,-1), action, next_state.view(1,-1), reward)
+        state = next_state
 
-        if(done):
-            next_state = None
-            break
         critic_step(buffer,critic_network, critic_target, actor_target, batch_size, device, gamma, critic_optimizer)
         actor_step(buffer, critic_network, actor_network, batch_size, device, gamma, actor_optimizer)
-        state = next_state
 
         for target_param, param in zip(actor_target.parameters(), actor_network.parameters()):
             target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
@@ -87,10 +81,16 @@ for e in range(num_episodes):
         for target_param, param in zip(critic_target.parameters(), critic_network.parameters()):
             target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
 
+        if (done):
+            next_state = None
+            break
+
+
     if(e % 20 == 0):
         G_list.append(G)
     G = 0
 
-    state = env.reset()
-    state = torch.from_numpy(state).to(device)
+
+
+    print(time.time()-start_time)
 

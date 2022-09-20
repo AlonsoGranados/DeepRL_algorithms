@@ -14,7 +14,7 @@ class Actor_Network(nn.Module):
         x = x.to(self.device)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.tanh(self.fc3(x))
         return x
 
 class Critic_Network(nn.Module):

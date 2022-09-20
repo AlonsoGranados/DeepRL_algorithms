@@ -33,7 +33,9 @@ state = env.reset()
 state = torch.from_numpy(state)
 G = 0
 G_list = []
+
 for e in range(num_episodes):
+    start_time = time.time()
     if(e % 100 == 0):
         print(e)
     if (e % 1000 == 999):
@@ -70,4 +72,6 @@ for e in range(num_episodes):
 
     state = env.reset()
     state = torch.from_numpy(state)
+
+    print(start_time - time.time())
 
