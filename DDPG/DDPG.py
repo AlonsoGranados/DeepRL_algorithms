@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-def critic_step(buffer, critic, target_critic, target_actor, batch_size, device, gamma, optimizer):
+def gradient_step(buffer, critic, target_critic, actor, target_actor, batch_size, device, gamma, critic_opt, actor_opt):
     if(len(buffer) < 10000):
         return
 
@@ -23,7 +23,7 @@ def critic_step(buffer, critic, target_critic, target_actor, batch_size, device,
 
     ##########################################################
 
-    action_batch = action_batch.reshape ((batch_size,1))
+    action_batch = action_batch.view((batch_size,1))
 
     Q_values = critic(torch.cat((state_batch,action_batch),1))
 
@@ -39,21 +39,12 @@ def critic_step(buffer, critic, target_critic, target_actor, batch_size, device,
     criterion = nn.MSELoss()
     loss = criterion(Q_values, targets.unsqueeze(1))
 
-    optimizer.zero_grad()
+    critic_opt.zero_grad()
     loss.backward()
-    optimizer.step()
+    critic_opt.step()
 
-def actor_step(buffer, critic, actor, batch_size, device, gamma, optimizer):
-    if(len(buffer) < 10000):
-        return
+    policy_loss = -torch.mean(critic(torch.cat((state_batch, actor(state_batch)), 1)))
 
-    transitions = buffer.sample(batch_size)
-    batch = buffer.transition(*zip(*transitions))
-
-    state_batch = torch.cat(batch.state)
-
-    policy_loss = -torch.mean(critic(torch.cat((state_batch,actor(state_batch)),1)))
-
-    optimizer.zero_grad()
+    actor_opt.zero_grad()
     policy_loss.backward()
-    optimizer.step()
+    actor_opt.step()

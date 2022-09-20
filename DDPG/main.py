@@ -5,8 +5,7 @@ import numpy as np
 from utils import experience_replay
 from Network import Actor_Network
 from Network import Critic_Network
-from DDPG import critic_step
-from DDPG import actor_step
+from DDPG import gradient_step
 import torch.optim as optim
 from utils import exploratory_policy
 import matplotlib.pyplot as plt
@@ -15,7 +14,7 @@ import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #env = gym.envs.make('LunarLander-v2')
-env = gym.envs.make('MountainCarContinuous-v0')
+env = gym.envs.make('Pendulum-v1')
 
 # Parameters
 obs_space = env.observation_space.shape[0]
@@ -50,7 +49,7 @@ target_update = 5000
 G = 0
 G_list = []
 for e in range(num_episodes):
-    start_time = time.time()
+    # start_time = time.time()
     state = env.reset()
     state = torch.from_numpy(state).to(device)
 
@@ -72,8 +71,7 @@ for e in range(num_episodes):
         buffer.push(state.view(1,-1), action, next_state.view(1,-1), reward)
         state = next_state
 
-        critic_step(buffer,critic_network, critic_target, actor_target, batch_size, device, gamma, critic_optimizer)
-        actor_step(buffer, critic_network, actor_network, batch_size, device, gamma, actor_optimizer)
+        gradient_step(buffer,critic_network, critic_target, actor_network, actor_target, batch_size, device, gamma, critic_optimizer, actor_optimizer)
 
         for target_param, param in zip(actor_target.parameters(), actor_network.parameters()):
             target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
@@ -92,5 +90,5 @@ for e in range(num_episodes):
 
 
 
-    print(time.time()-start_time)
+    # print(time.time()-start_time)
 
