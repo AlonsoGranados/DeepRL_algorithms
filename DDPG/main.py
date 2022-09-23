@@ -14,13 +14,13 @@ import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #env = gym.envs.make('LunarLander-v2')
-env = gym.envs.make('Pendulum-v1')
+env = gym.envs.make('MountainCarContinuous-v0')
 
 # Parameters
 obs_space = env.observation_space.shape[0]
 act_space = env.action_space.shape[0]
 
-buffer = experience_replay(10000)
+buffer = experience_replay(100000)
 actor_network = Actor_Network(obs_space, act_space, device).to(device)
 actor_target = Actor_Network(obs_space, act_space, device).to(device)
 
@@ -39,30 +39,37 @@ critic_target.eval()
 actor_optimizer = optim.Adam(actor_network.parameters())
 critic_optimizer = optim.Adam(critic_network.parameters())
 
+std = 5
 tau = 0.001
 gamma = 0.9
 batch_size = 64
-max_iter = 200
+max_iter = 1000
 num_episodes = 50000
 target_update = 5000
 
 G = 0
 G_list = []
+t = 0
 for e in range(num_episodes):
+    # print(t)
     # start_time = time.time()
     state = env.reset()
     state = torch.from_numpy(state).to(device)
 
     if(e % 100 == 0):
         print(e)
-    if (e % 1000 == 999):
+    if (e % 100 == 99 ):
+        if(e > 10000):
+            std = 1
+        if(e > 20000):
+            std = 0.1
         plt.plot(G_list)
         plt.show()
     for t in range(max_iter):
         # env.render()
         # action = np.random.randint(env.action_space.n)
-        action = exploratory_policy(state, actor_network, act_space, device)
-
+        action = exploratory_policy(state, actor_network, act_space, device, std)
+        # print(action)
         next_state, reward, done, info = env.step([action.item()])
         next_state = torch.from_numpy(next_state).to(device)
         reward = torch.tensor([float(reward)], device=device)

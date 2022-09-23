@@ -29,7 +29,6 @@ def epsilon_greedy(state, network, epsilon, action_space, device):
             return network(state).argmax().view(-1,1)
 
 
-def exploratory_policy(state, network, action_space, device):
-    std = 1
+def exploratory_policy(state, network, action_space, device, std):
     with torch.no_grad():
         return network(state) + torch.normal(torch.zeros(action_space), torch.zeros(action_space) + std).to(device)
